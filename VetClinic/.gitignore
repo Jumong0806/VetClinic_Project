@@ -1,0 +1,10 @@
+.idea/
+*.iml
+out/
+bin/
+*.class
+.DS_Store
+# runtime data files (do not commit your own test data)
+data/*.dat
+# never commit passwords
+db/*.local
