@@ -45,12 +45,14 @@ public class MainFrame extends JFrame {
     private JButton btnDashboard;
     private JButton btnPatients;
     private JButton btnStaff;
+    private JButton btnTreatments;
     private JButton btnLogout;
     private JLabel lblUserName;         // logged-in staff name
     private JLabel lblUserRole;         // logged-in staff role
     private DashboardPanel dashboardPanel;
     private AnimalPanel animalPanel;
     private StaffPanel staffPanel;
+    private TreatmentPanel treatmentPanel;
     private JButton btnNotifications;   // bell icon
 
     public MainFrame(ClinicManager manager, AuthService authService) {
@@ -84,6 +86,8 @@ public class MainFrame extends JFrame {
         pnlContent.add(dashboardPanel, "Dashboard");
         pnlContent.add(animalPanel, "Patients");
         pnlContent.add(staffPanel, "Staff");
+        treatmentPanel = new TreatmentPanel(manager, authService);
+        pnlContent.add(treatmentPanel, "Treatments");
         add(pnlContent, BorderLayout.CENTER);
 
         buildSidebar();
@@ -118,6 +122,8 @@ public class MainFrame extends JFrame {
         btnDashboard = new JButton("Dashboard");
         btnPatients = new JButton("Patients");
         btnStaff = new JButton("Staff");
+        btnTreatments = new JButton("Treatments");
+        styleSidebarButton(btnTreatments);
         btnLogout = new JButton("Logout");
         styleSidebarButton(btnDashboard);
         styleSidebarButton(btnPatients);
@@ -129,12 +135,15 @@ public class MainFrame extends JFrame {
         pnlSidebar.add(btnPatients);
         pnlSidebar.add(Box.createVerticalStrut(6));
         pnlSidebar.add(btnStaff);
+        pnlSidebar.add(Box.createVerticalStrut(6));
+        pnlSidebar.add(btnTreatments);
         pnlSidebar.add(Box.createVerticalGlue());   // pushes Logout to the bottom
         pnlSidebar.add(btnLogout);
 
         btnDashboard.addActionListener(e -> showPage("Dashboard"));
         btnPatients.addActionListener(e -> showPage("Patients"));
         btnStaff.addActionListener(e -> showPage("Staff"));
+        btnTreatments.addActionListener(e -> showPage("Treatments"));
         btnLogout.addActionListener(e -> handleLogout());
 
         add(pnlSidebar, BorderLayout.WEST);
@@ -178,12 +187,15 @@ public class MainFrame extends JFrame {
             animalPanel.refreshTable(manager.getAllAnimals());
         } else if (pageName.equals("Staff")) {
             staffPanel.refreshTable(manager.getAllStaff());
+        } else if (pageName.equals("Treatments")) {
+            treatmentPanel.refreshTable(manager.getAllTreatments());
         }
 
         // Highlight the button of the page we are on.
         btnDashboard.setBackground(pageName.equals("Dashboard") ? new Color(0xD6E4FF) : new Color(0xEAF1FD));
         btnPatients.setBackground(pageName.equals("Patients") ? new Color(0xD6E4FF) : new Color(0xEAF1FD));
         btnStaff.setBackground(pageName.equals("Staff") ? new Color(0xD6E4FF) : new Color(0xEAF1FD));
+        btnTreatments.setBackground(pageName.equals("Treatments") ? new Color(0xD6E4FF) : new Color(0xEAF1FD));
     }
 
     // Logout: ask, save, forget the user, go back to the login window.

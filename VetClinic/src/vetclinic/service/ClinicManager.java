@@ -251,6 +251,67 @@ public class ClinicManager {
         return record;
     }
 
+    // Gets all treatments across all animals, sorted newest first.
+    public List<TreatmentRecord> getAllTreatments() {
+        List<TreatmentRecord> all = new ArrayList<>();
+        for (Animal animal : animals) {
+            all.addAll(animal.getTreatmentHistory());
+        }
+        Collections.sort(all, (a, b) -> b.getTreatmentDate().compareTo(a.getTreatmentDate()));
+        return all;
+    }
+
+    // Searches treatments by record ID, patient ID, diagnosis, or treatment text.
+    public List<TreatmentRecord> searchTreatments(String keyword) {
+        if (ValidationUtil.isBlank(keyword)) {
+            return getAllTreatments();
+        }
+        String text = keyword.trim().toLowerCase();
+        List<TreatmentRecord> result = new ArrayList<>();
+        for (TreatmentRecord record : getAllTreatments()) {
+            if (record.getRecordId().toLowerCase().contains(text)
+                    || record.getAnimalId().toLowerCase().contains(text)
+                    || record.getDiagnosis().toLowerCase().contains(text)
+                    || record.getTreatment().toLowerCase().contains(text)) {
+                result.add(record);
+            }
+        }
+        return result;
+    }
+
+    // Updates an existing treatment record inside the animal's history.
+    public void updateTreatment(TreatmentRecord updatedRecord) {
+        if (updatedRecord == null) {
+            throw new IllegalArgumentException("No treatment record to update.");
+        }
+        Animal animal = findAnimalById(updatedRecord.getAnimalId());
+        if (animal == null) {
+            throw new IllegalArgumentException("Animal " + updatedRecord.getAnimalId() + " was not found.");
+        }
+        List<TreatmentRecord> history = animal.getTreatmentHistory();
+        for (int i = 0; i < history.size(); i++) {
+            if (history.get(i).getRecordId().equals(updatedRecord.getRecordId())) {
+                history.set(i, updatedRecord);
+                animal.setTreatmentHistory(history); // Apply the changes
+                return;
+            }
+        }
+        throw new IllegalArgumentException("Treatment record " + updatedRecord.getRecordId() + " was not found.");
+    }
+
+    // Deletes a specific treatment record from the animal's history.
+    public void removeTreatment(String recordId) {
+        for (Animal animal : animals) {
+            List<TreatmentRecord> history = animal.getTreatmentHistory();
+            boolean removed = history.removeIf(r -> r.getRecordId().equals(recordId));
+            if (removed) {
+                animal.setTreatmentHistory(history);
+                return;
+            }
+        }
+        throw new IllegalArgumentException("Treatment record " + recordId + " was not found.");
+    }
+
     // Dashboard card: counts the records of all animals.
     public int getTotalTreatments() {
         int total = 0;
