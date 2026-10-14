@@ -8,18 +8,7 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.util.List;
 
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
@@ -39,6 +28,7 @@ public class TreatmentPanel extends JPanel {
     private ClinicManager manager;
     private AuthService authService;
     private JTextField txtSearch;
+    private JComboBox<String> cmbDateFilter; // Add this line
     private JTable tblTreatments;
     private JButton btnUpdate;
     private JButton btnDelete;
@@ -79,22 +69,47 @@ public class TreatmentPanel extends JPanel {
         pnlTitle.add(lblSubtitle);
 
         txtSearch = new JTextField();
-        txtSearch.setBorder(BorderFactory.createTitledBorder("Search by record ID, patient ID, diagnosis, or treatment"));
+        txtSearch.setBorder(BorderFactory.createTitledBorder("Search by ID, patient, diagnosis, treatment, medication, or staff"));
         txtSearch.getDocument().addDocumentListener(new DocumentListener() {
             @Override public void insertUpdate(DocumentEvent e) { handleSearch(); }
             @Override public void removeUpdate(DocumentEvent e) { handleSearch(); }
             @Override public void changedUpdate(DocumentEvent e) { handleSearch(); }
         });
 
+        // Initialize the new Date Filter dropdown
+        cmbDateFilter = new JComboBox<>(new String[]{"All Time", "Today", "Last 7 Days", "Last 30 Days"});
+        cmbDateFilter.addActionListener(e -> handleSearch());
+
+        // Place the filter on the right side of the search bar
+        JPanel pnlRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        pnlRight.setOpaque(false);
+        pnlRight.add(cmbDateFilter);
+
         JPanel pnlSearch = new JPanel(new BorderLayout(10, 0));
         pnlSearch.setOpaque(false);
         pnlSearch.add(txtSearch, BorderLayout.CENTER);
+        pnlSearch.add(pnlRight, BorderLayout.EAST);
 
         JPanel pnlTop = new JPanel(new BorderLayout(0, 10));
         pnlTop.setOpaque(false);
         pnlTop.add(pnlTitle, BorderLayout.NORTH);
         pnlTop.add(pnlSearch, BorderLayout.CENTER);
         add(pnlTop, BorderLayout.NORTH);
+    }
+
+    private void handleSearch() {
+        // Fetch results from both text search and date filter
+        List<TreatmentRecord> searched = manager.searchTreatments(txtSearch.getText());
+        List<TreatmentRecord> filtered = manager.filterTreatmentsByDate((String) cmbDateFilter.getSelectedItem());
+
+        // Keep only records that match BOTH the text search and the date filter
+        List<TreatmentRecord> both = new java.util.ArrayList<>();
+        for (TreatmentRecord record : searched) {
+            if (filtered.contains(record)) {
+                both.add(record);
+            }
+        }
+        refreshTable(both);
     }
 
     private void buildTablePanel() {
@@ -251,11 +266,6 @@ public class TreatmentPanel extends JPanel {
         } else {
             showDetails(selected);
         }
-    }
-
-    private void handleSearch() {
-        List<TreatmentRecord> result = manager.searchTreatments(txtSearch.getText());
-        refreshTable(result);
     }
 
     private void handleUpdateTreatment() {

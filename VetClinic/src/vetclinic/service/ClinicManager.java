@@ -261,7 +261,7 @@ public class ClinicManager {
         return all;
     }
 
-    // Searches treatments by record ID, patient ID, diagnosis, or treatment text.
+    // Upgraded: Searches all visible columns including Patient Name, Medication, and Staff
     public List<TreatmentRecord> searchTreatments(String keyword) {
         if (ValidationUtil.isBlank(keyword)) {
             return getAllTreatments();
@@ -269,10 +269,36 @@ public class ClinicManager {
         String text = keyword.trim().toLowerCase();
         List<TreatmentRecord> result = new ArrayList<>();
         for (TreatmentRecord record : getAllTreatments()) {
+            Animal patient = findAnimalById(record.getAnimalId());
+            String patientName = (patient != null) ? patient.getName().toLowerCase() : "";
+
             if (record.getRecordId().toLowerCase().contains(text)
                     || record.getAnimalId().toLowerCase().contains(text)
+                    || patientName.contains(text)
                     || record.getDiagnosis().toLowerCase().contains(text)
-                    || record.getTreatment().toLowerCase().contains(text)) {
+                    || record.getTreatment().toLowerCase().contains(text)
+                    || record.getMedication().toLowerCase().contains(text)
+                    || record.getPerformedBy().getStaffName().toLowerCase().contains(text)) {
+                result.add(record);
+            }
+        }
+        return result;
+    }
+
+    // New: Filters treatment records based on the selected time frame
+    public List<TreatmentRecord> filterTreatmentsByDate(String period) {
+        if (ValidationUtil.isBlank(period) || period.equals("All Time")) {
+            return getAllTreatments();
+        }
+        List<TreatmentRecord> result = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        for (TreatmentRecord record : getAllTreatments()) {
+            LocalDate tDate = record.getTreatmentDate();
+            if (period.equals("Today") && tDate.isEqual(today)) {
+                result.add(record);
+            } else if (period.equals("Last 7 Days") && !tDate.isBefore(today.minusDays(7)) && !tDate.isAfter(today)) {
+                result.add(record);
+            } else if (period.equals("Last 30 Days") && !tDate.isBefore(today.minusDays(30)) && !tDate.isAfter(today)) {
                 result.add(record);
             }
         }
