@@ -115,7 +115,7 @@ public class TreatmentPanel extends JPanel {
     private void buildTablePanel() {
         // Kept "Patient ID", added "Patient Name", "Treatment", and "Medication"
         DefaultTableModel model = new DefaultTableModel(
-                new String[]{"Record ID", "Date", "Patient ID", "Patient Name", "Diagnosis", "Treatment", "Medication", "Performed By"}, 0) {
+                new String[]{"Record ID", "Treatment Date", "Patient ID", "Patient Name", "Diagnosis", "Treatment", "Medication", "Performed By"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
         };
@@ -274,7 +274,7 @@ public class TreatmentPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Please select a record first.", "No selection", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        new TreatmentFormDialog(getParentFrame(), manager, selected, authService.getCurrentStaff()).setVisible(true);
+        new TreatmentFormDialog(getParentFrame(), manager, selected).setVisible(true);
         handleSearch();
     }
 

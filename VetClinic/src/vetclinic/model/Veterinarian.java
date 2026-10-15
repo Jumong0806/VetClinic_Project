@@ -18,8 +18,9 @@ public class Veterinarian extends Staff {
     private String licenseNumber;
     private String specialization;
 
-    public Veterinarian(String staffId, String staffName, String contactNumber, String username, String password, String licenseNumber, String specialization) {
-        super(staffId, staffName, contactNumber, username, password);
+    // Initializes a new Veterinarian.
+    public Veterinarian(String staffId, String staffName, String contactNumber, String licenseNumber, String specialization) {
+        super(staffId, staffName, contactNumber);
         setLicenseNumber(licenseNumber);
         setSpecialization(specialization);
     }

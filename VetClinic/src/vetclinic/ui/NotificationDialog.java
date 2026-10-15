@@ -59,21 +59,44 @@ public class NotificationDialog extends JDialog {
         setLocationRelativeTo(parent);
     }
 
-    // Fills the table with the due and the upcoming checkups.
+    // Fills the table by checking the follow-up dates inside the treatment records
     private void loadNotifications() {
         DefaultTableModel model = (DefaultTableModel) tblNotifications.getModel();
         model.setRowCount(0);
-        LocalDate today = LocalDate.now();
 
-        List<Animal> due = manager.getAnimalsDueForCheckup();
-        for (Animal animal : due) {
-            LocalDate next = animal.getNextCheckupDate();
-            String status = next.isBefore(today) ? "Overdue" : "Due today";
-            model.addRow(new Object[]{animal.getAnimalId(), animal.getName(), animal.getOwner().getOwnerName(), next.toString(), status});
-        }
-        for (Animal animal : manager.getUpcomingCheckups(7)) {
-            model.addRow(new Object[]{animal.getAnimalId(), animal.getName(), animal.getOwner().getOwnerName(),
-                    animal.getNextCheckupDate().toString(), "Upcoming (7 days)"});
+        LocalDate today = LocalDate.now();
+        LocalDate nextWeek = today.plusDays(7);
+
+        // Loop through all animals
+        for (Animal animal : manager.getAllAnimals()) {
+            // Dig into each animal's treatment history
+            for (vetclinic.model.TreatmentRecord record : animal.getTreatmentHistory()) {
+                LocalDate followUp = record.getFollowUpDate();
+
+                // If a follow-up date exists, check if it falls within our timeframe
+                if (followUp != null) {
+                    if (!followUp.isAfter(today)) {
+                        // Due today or Overdue
+                        String status = followUp.isBefore(today) ? "Overdue" : "Due today";
+                        model.addRow(new Object[]{
+                                animal.getAnimalId(),
+                                animal.getName(),
+                                animal.getOwner().getOwnerName(),
+                                followUp.toString(),
+                                status
+                        });
+                    } else if (!followUp.isAfter(nextWeek)) {
+                        // Upcoming within the next 7 days
+                        model.addRow(new Object[]{
+                                animal.getAnimalId(),
+                                animal.getName(),
+                                animal.getOwner().getOwnerName(),
+                                followUp.toString(),
+                                "Upcoming (7 days)"
+                        });
+                    }
+                }
+            }
         }
     }
 

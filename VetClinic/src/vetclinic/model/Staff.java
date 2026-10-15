@@ -23,16 +23,18 @@ public abstract class Staff implements Describable, Serializable {
     private String staffId;
     private String staffName;
     private String contactNumber;
-    private String username;       // login name, must be unique
-    private String passwordHash;   // SHA-256 hash, never the plain password
 
     // The constructor uses the setters so every value is validated.
-    public Staff(String staffId, String staffName, String contactNumber, String username, String password) {
+    public Staff(String staffId, String staffName, String contactNumber) {
         setStaffId(staffId);
         setStaffName(staffName);
         setContactNumber(contactNumber);
-        setUsername(username);
-        setPassword(password);      // turns the plain password into a hash
+    }
+
+    // Formats the staff details for dropdown menus.
+    @Override
+    public String toString() {
+        return staffName + " (" + getRole() + ")";
     }
 
     public String getStaffId() {
@@ -66,42 +68,6 @@ public abstract class Staff implements Describable, Serializable {
             throw new IllegalArgumentException("Staff contact number must be 11 digits and start with 09.");
         }
         this.contactNumber = contactNumber.trim();
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        if (!ValidationUtil.isValidUsername(username)) {
-            throw new IllegalArgumentException("Username must have at least 4 characters and no spaces.");
-        }
-        this.username = username.trim();
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    // Used when a stored hash is loaded back (for example from the database).
-    public void setPasswordHash(String passwordHash) {
-        if (ValidationUtil.isBlank(passwordHash)) {
-            throw new IllegalArgumentException("Password hash must not be blank.");
-        }
-        this.passwordHash = passwordHash;
-    }
-
-    // Validates the plain password, then stores only its hash.
-    public void setPassword(String plainPassword) {
-        if (!ValidationUtil.isValidPassword(plainPassword)) {
-            throw new IllegalArgumentException("Password must have at least 6 characters.");
-        }
-        this.passwordHash = PasswordUtil.hash(plainPassword);
-    }
-
-    // Used by AuthService.login(): hashes what the user typed and compares the hashes.
-    public boolean checkPassword(String plainPassword) {
-        return PasswordUtil.matches(plainPassword, passwordHash);
     }
 
     @Override

@@ -17,8 +17,9 @@ public class VetAssistant extends Staff {
 
     private String shift;   // Morning, Afternoon or Night
 
-    public VetAssistant(String staffId, String staffName, String contactNumber, String username, String password, String shift) {
-        super(staffId, staffName, contactNumber, username, password);
+    // Initializes a new Vet Assistant.
+    public VetAssistant(String staffId, String staffName, String contactNumber, String shift) {
+        super(staffId, staffName, contactNumber);
         setShift(shift);
     }
 

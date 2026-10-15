@@ -159,11 +159,10 @@ public class MainFrame extends JFrame {
         btnNotifications.setToolTipText("Checkup notifications");
         btnNotifications.addActionListener(e -> handleNotifications());
 
-        // Who is logged in? The AuthService remembers the Staff object.
-        Staff staff = authService.getCurrentStaff();
-        lblUserName = new JLabel(staff == null ? "" : staff.getStaffName());
+        // Displays the standard kiosk profile in the header
+        lblUserName = new JLabel("Front Desk Admin");
         lblUserName.setFont(new Font("SansSerif", Font.BOLD, 13));
-        lblUserRole = new JLabel(staff == null ? "" : staff.getRole());   // getRole() is polymorphic
+        lblUserRole = new JLabel("System Administrator");
         lblUserRole.setForeground(new Color(0x6B7A99));
 
         JPanel pnlUser = new JPanel();

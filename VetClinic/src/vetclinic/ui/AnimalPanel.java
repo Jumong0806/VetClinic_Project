@@ -385,19 +385,13 @@ public class AnimalPanel extends JPanel {
         refreshTable(both);
     }
 
-    // "+ Add Treatment": opens the treatment form. The logged-in staff performs the treatment.
     private void handleAddTreatment() {
         Animal selected = getSelectedAnimal();
         if (selected == null) {
             JOptionPane.showMessageDialog(this, "Please select a patient first.", "No selection", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        Staff currentStaff = authService.getCurrentStaff();
-        if (currentStaff == null) {
-            JOptionPane.showMessageDialog(this, "Nobody is logged in.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        new TreatmentDialog(getParentFrame(), manager, selected, currentStaff).setVisible(true);
+        new TreatmentDialog(getParentFrame(), manager, selected).setVisible(true);
     }
 
     // "View History": shows all treatments of the selected patient.

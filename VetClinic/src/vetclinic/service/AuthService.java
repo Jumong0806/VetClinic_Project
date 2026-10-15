@@ -1,8 +1,7 @@
 package vetclinic.service;
 
 import vetclinic.exception.AuthenticationException;
-import vetclinic.model.Staff;
-import vetclinic.util.ValidationUtil;
+import vetclinic.util.PasswordUtil;
 
 /**
  * AuthService - handles login and logout and remembers who is logged in.
@@ -13,37 +12,26 @@ import vetclinic.util.ValidationUtil;
  */
 public class AuthService {
 
-    private ClinicManager manager;
-    private Staff currentStaff;   // null when nobody is logged in
+    private boolean loggedIn = false;
 
-    public AuthService(ClinicManager manager) {
-        this.manager = manager;
-    }
+    // Master admin credentials for the kiosk terminal
+    private final String ADMIN_USER = "admin";
+    private final String ADMIN_HASH = PasswordUtil.hash("admin123");
 
-    // Checks the username and password. Returns the staff member, or throws AuthenticationException.
-    public Staff login(String username, String password) throws AuthenticationException {
-        if (ValidationUtil.isBlank(username) || password == null || password.isEmpty()) {
-            throw new AuthenticationException("Please enter your username and password.");
+    public boolean login(String username, String password) throws AuthenticationException {
+        // Hashes the input and compares it to the stored hash
+        if (ADMIN_USER.equals(username) && ADMIN_HASH.equals(PasswordUtil.hash(password))) {
+            loggedIn = true;
+            return true;
         }
-        Staff staff = manager.findStaffByUsername(username);
-        // The same message for a wrong username and a wrong password, so nobody can guess which one was right.
-        if (staff == null || !staff.checkPassword(password)) {
-            throw new AuthenticationException("Wrong username or password.");
-        }
-        currentStaff = staff;
-        return staff;
+        throw new AuthenticationException("Invalid admin username or password.");
     }
 
     public void logout() {
-        currentStaff = null;
-    }
-
-    // Used for the header and for the treatment permissions.
-    public Staff getCurrentStaff() {
-        return currentStaff;
+        loggedIn = false;
     }
 
     public boolean isLoggedIn() {
-        return currentStaff != null;
+        return loggedIn;
     }
 }

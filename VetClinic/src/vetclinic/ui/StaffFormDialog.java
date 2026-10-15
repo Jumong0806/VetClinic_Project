@@ -77,8 +77,6 @@ public class StaffFormDialog extends JDialog {
         cmbRole = new JComboBox<>(new String[]{"Veterinarian", "Vet Assistant"});
         txtStaffName = new JTextField(18);
         txtStaffContact = new JTextField(18);
-        txtUsername = new JTextField(18);
-        pwdPassword = new JPasswordField(18);
         txtLicenseNumber = new JTextField(14);
         txtSpecialization = new JTextField(14);
         cmbShift = new JComboBox<>(new String[]{"Morning", "Afternoon", "Night"});
@@ -103,8 +101,6 @@ public class StaffFormDialog extends JDialog {
         addRow(pnlForm, 0, "Role", cmbRole);
         addRow(pnlForm, 1, "Full name", txtStaffName);
         addRow(pnlForm, 2, "Contact (09...)", txtStaffContact);
-        addRow(pnlForm, 3, "Username", txtUsername);
-        addRow(pnlForm, 4, "Password", pwdPassword);
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -138,8 +134,6 @@ public class StaffFormDialog extends JDialog {
         cmbRole.setEnabled(false);   // the role of an existing staff member cannot change
         txtStaffName.setText(staff.getStaffName());
         txtStaffContact.setText(staff.getContactNumber());
-        txtUsername.setText(staff.getUsername());
-        pwdPassword.setText("");     // we never show a password; blank = keep the old one
 
         // instanceof is only used here to read fields that exist in ONE subclass.
         if (staff instanceof Veterinarian) {
@@ -154,26 +148,22 @@ public class StaffFormDialog extends JDialog {
 
     // Reads the form and creates a Veterinarian or a VetAssistant (INHERITANCE).
     // When updating with an empty password box, a temporary password is used only to validate the other fields.
+    // Reads the form and builds the staff object
     private Staff createStaffFromForm() {
-        String password = new String(pwdPassword.getPassword());
-        if (staff != null && password.isEmpty()) {
-            password = "temporary1";
-        }
         String id = (staff == null) ? manager.generateStaffId() : staff.getStaffId();
         String role = (String) cmbRole.getSelectedItem();
+
         if (role.equals("Veterinarian")) {
-            return new Veterinarian(id, txtStaffName.getText(), txtStaffContact.getText(), txtUsername.getText(), password,
+            return new Veterinarian(id, txtStaffName.getText(), txtStaffContact.getText(),
                     txtLicenseNumber.getText(), txtSpecialization.getText());
         }
-        return new VetAssistant(id, txtStaffName.getText(), txtStaffContact.getText(), txtUsername.getText(), password,
+        return new VetAssistant(id, txtStaffName.getText(), txtStaffContact.getText(),
                 (String) cmbShift.getSelectedItem());
     }
 
     private void clearForm() {
         txtStaffName.setText("");
         txtStaffContact.setText("");
-        txtUsername.setText("");
-        pwdPassword.setText("");
         txtLicenseNumber.setText("");
         txtSpecialization.setText("");
         cmbShift.setSelectedIndex(0);
@@ -194,18 +184,8 @@ public class StaffFormDialog extends JDialog {
             if (staff == null) {
                 manager.addStaff(checked);           // also checks that the username is free
             } else {
-                // The new values passed validation, so we can safely copy them into the existing object.
-                Staff other = manager.findStaffByUsername(checked.getUsername());
-                if (other != null && !other.getStaffId().equals(staff.getStaffId())) {
-                    throw new IllegalArgumentException("The username \"" + checked.getUsername() + "\" is already taken.");
-                }
                 staff.setStaffName(checked.getStaffName());
                 staff.setContactNumber(checked.getContactNumber());
-                staff.setUsername(checked.getUsername());
-                String newPassword = new String(pwdPassword.getPassword());
-                if (!ValidationUtil.isBlank(newPassword)) {
-                    staff.setPassword(newPassword);
-                }
                 if (staff instanceof Veterinarian) {
                     ((Veterinarian) staff).setLicenseNumber(txtLicenseNumber.getText());
                     ((Veterinarian) staff).setSpecialization(txtSpecialization.getText());

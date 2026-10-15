@@ -6,9 +6,11 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.time.LocalDate;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -25,20 +27,18 @@ import vetclinic.util.ValidationUtil;
 
 /**
  * TreatmentDialog - the pop-up form to add a treatment to the selected patient.
- * The LOGGED-IN staff member performs the treatment. A Vet Assistant cannot diagnose or prescribe.
+ * The Admin selects the performing staff member from a dropdown.
+ * The form adjusts dynamically based on the selected staff member's permissions.
  * Owner: Ben
  *
  * Swing concepts: modal JDialog, GridBagLayout (form), FlowLayout (buttons), setEnabled() to lock boxes.
- * OOP concept: POLYMORPHISM. We ask the staff object canDiagnose() and canPrescribeMedication();
- * a Veterinarian and a VetAssistant give different answers, so the form behaves differently.
  */
 public class TreatmentDialog extends JDialog {
 
     private ClinicManager manager;
     private Animal animal;
-    private Staff currentStaff;            // the logged-in staff
     private JLabel lblPatient;
-    private JLabel lblPerformedBy;
+    private JComboBox<Staff> cmbStaff;
     private JTextField txtTreatmentDate;   // defaults to today, format yyyy-MM-dd
     private JTextField txtDiagnosis;
     private JTextField txtTreatment;
@@ -47,16 +47,20 @@ public class TreatmentDialog extends JDialog {
     private JButton btnSave;
     private JButton btnCancel;
 
-    public TreatmentDialog(JFrame parent, ClinicManager manager, Animal animal, Staff currentStaff) {
+    public TreatmentDialog(JFrame parent, ClinicManager manager, Animal animal) {
         super(parent, "Add Treatment", true);
         this.manager = manager;
         this.animal = animal;
-        this.currentStaff = currentStaff;
 
         setLayout(new BorderLayout(8, 8));
 
         lblPatient = new JLabel(animal.getName() + " (" + animal.getAnimalId() + ")");
-        lblPerformedBy = new JLabel(currentStaff.getStaffName() + " - " + currentStaff.getRole());
+
+        // Build the dynamic Staff dropdown
+        List<Staff> allStaff = manager.getAllStaff();
+        cmbStaff = new JComboBox<>(allStaff.toArray(new Staff[0]));
+        cmbStaff.addActionListener(e -> applyRolePermissions());
+
         txtTreatmentDate = new JTextField(LocalDate.now().toString(), 18);
         txtDiagnosis = new JTextField(18);
         txtTreatment = new JTextField(18);
@@ -67,7 +71,7 @@ public class TreatmentDialog extends JDialog {
         JPanel pnlForm = new JPanel(new GridBagLayout());
         pnlForm.setBorder(BorderFactory.createEmptyBorder(12, 12, 4, 12));
         addRow(pnlForm, 0, "Patient", lblPatient);
-        addRow(pnlForm, 1, "Performed by", lblPerformedBy);
+        addRow(pnlForm, 1, "Performed by", cmbStaff);
         addRow(pnlForm, 2, "Treatment date", txtTreatmentDate);
         addRow(pnlForm, 3, "Diagnosis", txtDiagnosis);
         addRow(pnlForm, 4, "Treatment", txtTreatment);
@@ -91,15 +95,26 @@ public class TreatmentDialog extends JDialog {
         setLocationRelativeTo(parent);
     }
 
-    // Locks the boxes that this staff role is not allowed to use.
+    // Adjusts input fields based on the selected staff member's clearance
     private void applyRolePermissions() {
-        if (!currentStaff.canDiagnose()) {                  // a Vet Assistant cannot diagnose
+        Staff selectedStaff = (Staff) cmbStaff.getSelectedItem();
+        if (selectedStaff == null) return;
+
+        boolean canDiagnose = selectedStaff.canDiagnose();
+        boolean canPrescribe = selectedStaff.canPrescribeMedication();
+
+        txtDiagnosis.setEnabled(canDiagnose);
+        if (!canDiagnose) {
             txtDiagnosis.setText("Basic care only");
-            txtDiagnosis.setEnabled(false);
+        } else if (txtDiagnosis.getText().equals("Basic care only")) {
+            txtDiagnosis.setText("");
         }
-        if (!currentStaff.canPrescribeMedication()) {       // a Vet Assistant cannot prescribe
+
+        txtMedication.setEnabled(canPrescribe);
+        if (!canPrescribe) {
             txtMedication.setText("None");
-            txtMedication.setEnabled(false);
+        } else if (txtMedication.getText().equals("None")) {
+            txtMedication.setText("");
         }
     }
 
@@ -111,7 +126,10 @@ public class TreatmentDialog extends JDialog {
             if (!ValidationUtil.isBlank(txtFollowUpDate.getText())) {
                 followUpDate = ValidationUtil.parseDate(txtFollowUpDate.getText());
             }
-            manager.recordTreatment(animal.getAnimalId(), currentStaff.getStaffId(), treatmentDate,
+
+            Staff selectedStaff = (Staff) cmbStaff.getSelectedItem();
+
+            manager.recordTreatment(animal.getAnimalId(), selectedStaff.getStaffId(), treatmentDate,
                     txtDiagnosis.getText(), txtTreatment.getText(), txtMedication.getText(), followUpDate);
         } catch (IllegalArgumentException e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Please check the form", JOptionPane.ERROR_MESSAGE);
@@ -129,8 +147,6 @@ public class TreatmentDialog extends JDialog {
     private void handleCancel() {
         dispose();
     }
-
-    // ---------------- helper (not in the Excel, see DEVIATIONS) ----------------
 
     private void addRow(JPanel panel, int row, String label, JComponent field) {
         GridBagConstraints gbc = new GridBagConstraints();

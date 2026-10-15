@@ -294,12 +294,7 @@ public class StaffPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Please select a staff member first.", "No selection", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        Staff loggedIn = authService.getCurrentStaff();
-        if (loggedIn != null && loggedIn.getStaffId().equals(selected.getStaffId())) {
-            JOptionPane.showMessageDialog(this, "You cannot delete the staff member who is logged in.",
-                    "Not allowed", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+
         int answer = JOptionPane.showConfirmDialog(this, "Delete " + selected.getStaffName() + " (" + selected.getStaffId() + ")?",
                 "Delete staff", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (answer != JOptionPane.YES_OPTION) {

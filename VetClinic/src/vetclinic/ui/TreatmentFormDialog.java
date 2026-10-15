@@ -6,9 +6,11 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.time.LocalDate;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -26,14 +28,14 @@ import vetclinic.util.ValidationUtil;
 
 /**
  * TreatmentFormDialog - the pop-up form to UPDATE an existing treatment record.
+ * The Admin can update the performing staff member from a dropdown.
  */
 public class TreatmentFormDialog extends JDialog {
 
     private ClinicManager manager;
     private TreatmentRecord originalRecord;
-    private Staff currentStaff;            // the currently logged-in staff member
     private JLabel lblPatient;
-    private JLabel lblPerformedBy;
+    private JComboBox<Staff> cmbStaff;
     private JTextField txtTreatmentDate;
     private JTextField txtDiagnosis;
     private JTextField txtTreatment;
@@ -42,11 +44,10 @@ public class TreatmentFormDialog extends JDialog {
     private JButton btnSave;
     private JButton btnCancel;
 
-    public TreatmentFormDialog(JFrame parent, ClinicManager manager, TreatmentRecord record, Staff currentStaff) {
+    public TreatmentFormDialog(JFrame parent, ClinicManager manager, TreatmentRecord record) {
         super(parent, "Update Treatment " + record.getRecordId(), true);
         this.manager = manager;
         this.originalRecord = record;
-        this.currentStaff = currentStaff;
 
         setLayout(new BorderLayout(8, 8));
 
@@ -54,8 +55,17 @@ public class TreatmentFormDialog extends JDialog {
         String animalStr = (animal != null) ? animal.getName() + " (" + animal.getAnimalId() + ")" : record.getAnimalId();
 
         lblPatient = new JLabel(animalStr);
-        // The original staff who performed it is shown, but role permissions are checked against current user
-        lblPerformedBy = new JLabel(record.getPerformedBy().getStaffName() + " - " + record.getPerformedBy().getRole());
+
+        // Builds the staff dropdown and selects the doctor who originally performed the treatment
+        List<Staff> allStaff = manager.getAllStaff();
+        cmbStaff = new JComboBox<>(allStaff.toArray(new Staff[0]));
+        for (int i = 0; i < cmbStaff.getItemCount(); i++) {
+            if (cmbStaff.getItemAt(i).getStaffId().equals(record.getPerformedBy().getStaffId())) {
+                cmbStaff.setSelectedIndex(i);
+                break;
+            }
+        }
+        cmbStaff.addActionListener(e -> applyRolePermissions());
 
         txtTreatmentDate = new JTextField(record.getTreatmentDate().toString(), 18);
         txtDiagnosis = new JTextField(record.getDiagnosis(), 18);
@@ -69,7 +79,7 @@ public class TreatmentFormDialog extends JDialog {
         JPanel pnlForm = new JPanel(new GridBagLayout());
         pnlForm.setBorder(BorderFactory.createEmptyBorder(12, 12, 4, 12));
         addRow(pnlForm, 0, "Patient", lblPatient);
-        addRow(pnlForm, 1, "Performed by", lblPerformedBy);
+        addRow(pnlForm, 1, "Performed by", cmbStaff);
         addRow(pnlForm, 2, "Treatment date", txtTreatmentDate);
         addRow(pnlForm, 3, "Diagnosis", txtDiagnosis);
         addRow(pnlForm, 4, "Treatment", txtTreatment);
@@ -93,12 +103,26 @@ public class TreatmentFormDialog extends JDialog {
         setLocationRelativeTo(parent);
     }
 
+    // Adjusts input fields based on the selected staff member's clearance
     private void applyRolePermissions() {
-        if (!currentStaff.canDiagnose()) {
-            txtDiagnosis.setEnabled(false);
+        Staff selectedStaff = (Staff) cmbStaff.getSelectedItem();
+        if (selectedStaff == null) return;
+
+        boolean canDiagnose = selectedStaff.canDiagnose();
+        boolean canPrescribe = selectedStaff.canPrescribeMedication();
+
+        txtDiagnosis.setEnabled(canDiagnose);
+        if (!canDiagnose) {
+            txtDiagnosis.setText("Basic care only");
+        } else if (txtDiagnosis.getText().equals("Basic care only")) {
+            txtDiagnosis.setText("");
         }
-        if (!currentStaff.canPrescribeMedication()) {
-            txtMedication.setEnabled(false);
+
+        txtMedication.setEnabled(canPrescribe);
+        if (!canPrescribe) {
+            txtMedication.setText("None");
+        } else if (txtMedication.getText().equals("None")) {
+            txtMedication.setText("");
         }
     }
 
@@ -110,7 +134,8 @@ public class TreatmentFormDialog extends JDialog {
                 followUpDate = ValidationUtil.parseDate(txtFollowUpDate.getText());
             }
 
-            // Build the updated record reusing the immutable IDs
+            Staff selectedStaff = (Staff) cmbStaff.getSelectedItem();
+
             TreatmentRecord updatedRecord = new TreatmentRecord(
                     originalRecord.getRecordId(),
                     originalRecord.getAnimalId(),
@@ -119,7 +144,7 @@ public class TreatmentFormDialog extends JDialog {
                     txtTreatment.getText(),
                     txtMedication.getText(),
                     followUpDate,
-                    originalRecord.getPerformedBy() // Keep the original staff context
+                    selectedStaff
             );
 
             manager.updateTreatment(updatedRecord);

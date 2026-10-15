@@ -138,15 +138,11 @@ public class ClinicManager {
 
     // ---------------- staff ----------------
 
+    // Validates ID uniqueness before adding a staff member.
     public void addStaff(Staff staff) {
-        if (staff == null) {
-            throw new IllegalArgumentException("No staff member to add.");
-        }
+        if (staff == null) throw new IllegalArgumentException("No staff member to add.");
         if (findStaffById(staff.getStaffId()) != null) {
             throw new IllegalArgumentException("A staff member with ID " + staff.getStaffId() + " already exists.");
-        }
-        if (findStaffByUsername(staff.getUsername()) != null) {
-            throw new IllegalArgumentException("The username \"" + staff.getUsername() + "\" is already taken.");
         }
         staffMembers.add(staff);
     }
@@ -198,29 +194,11 @@ public class ClinicManager {
         return result;
     }
 
-    // Used by AuthService.login(). Usernames are not case sensitive.
-    public Staff findStaffByUsername(String username) {
-        if (username == null) {
-            return null;
-        }
-        for (Staff staff : staffMembers) {
-            if (staff.getUsername().equalsIgnoreCase(username.trim())) {
-                return staff;
-            }
-        }
-        return null;
-    }
-
-    // First run only: creates two demo accounts so someone can log in.
-    //   Veterinarian : username "olivia"  password "vet123"
-    //   Vet Assistant: username "julia"   password "asst123"
+    // Seeds initial staff data.
     public void seedDefaultStaffIfEmpty() {
-        if (!staffMembers.isEmpty()) {
-            return;
-        }
-        staffMembers.add(new Veterinarian("S001", "Dr. Olivia Rodrigo", "09171234567", "olivia", "vet123",
-                "VET-2026-001", "Small Animals"));
-        staffMembers.add(new VetAssistant("S002", "Julia Montes", "09181234567", "julia", "asst123", "Morning"));
+        if (!staffMembers.isEmpty()) return;
+        staffMembers.add(new Veterinarian("S001", "Dr. Olivia Rodrigo", "09171234567", "VET-2026-001", "Small Animals"));
+        staffMembers.add(new VetAssistant("S002", "Julia Montes", "09181234567", "Morning"));
     }
 
     // ---------------- treatments ----------------
@@ -449,6 +427,26 @@ public class ClinicManager {
             }
         }
         return result;
+    }
+
+    // Notifications: pulls treatment records with follow-up dates today, overdue, or within the next 7 days
+    public List<TreatmentRecord> getUpcomingFollowUps() {
+        List<TreatmentRecord> upcomingFollowUps = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        LocalDate oneWeekFromNow = today.plusDays(7);
+
+        for (Animal animal : animals) {
+            for (TreatmentRecord record : animal.getTreatmentHistory()) {
+                LocalDate followUp = record.getFollowUpDate();
+                if (followUp != null) {
+                    // Check if the follow-up is today, overdue, or within the next 7 days
+                    if (!followUp.isAfter(oneWeekFromNow)) {
+                        upcomingFollowUps.add(record);
+                    }
+                }
+            }
+        }
+        return upcomingFollowUps;
     }
 
     // ---------------- private helpers (not in the Excel, see DEVIATIONS) ----------------

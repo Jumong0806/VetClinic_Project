@@ -84,7 +84,7 @@ public class DashboardPanel extends JPanel {
     // The table with the newest treatment records.
     private void buildRecentTreatmentsTable() {
         DefaultTableModel model = new DefaultTableModel(
-                new String[]{"Date", "Record ID", "Patient", "Diagnosis", "Performed By"}, 0) {
+                new String[]{"Treatment Date", "Record ID", "Patient", "Diagnosis", "Performed By"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;   // the user cannot type inside the table

@@ -141,20 +141,18 @@ public class MySqlStorage implements Storable {
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement("SELECT staff_id FROM staff");
              ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                idsInDatabase.add(rs.getString("staff_id"));
-            }
+            while (rs.next()) idsInDatabase.add(rs.getString("staff_id"));
         } catch (SQLException e) {
             throw new StorageException("Could not read the staff IDs from MySQL: " + e.getMessage(), e);
         }
 
         List<String> idsInProgram = new ArrayList<>();
-        // "REPLACE-style" upsert: one statement works for both new and existing rows.
-        String sql = "INSERT INTO staff (staff_id, staff_name, contact_number, username, password_hash, role, license_number, specialization, shift) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
+
+        // SQL execution for staff records
+        String sql = "INSERT INTO staff (staff_id, staff_name, contact_number, role, license_number, specialization, shift) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?) "
                 + "ON DUPLICATE KEY UPDATE staff_name = VALUES(staff_name), contact_number = VALUES(contact_number), "
-                + "username = VALUES(username), password_hash = VALUES(password_hash), role = VALUES(role), "
-                + "license_number = VALUES(license_number), specialization = VALUES(specialization), shift = VALUES(shift)";
+                + "role = VALUES(role), license_number = VALUES(license_number), specialization = VALUES(specialization), shift = VALUES(shift)";
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             for (Staff staff : staffMembers) {
@@ -162,20 +160,19 @@ public class MySqlStorage implements Storable {
                 ps.setString(1, staff.getStaffId());
                 ps.setString(2, staff.getStaffName());
                 ps.setString(3, staff.getContactNumber());
-                ps.setString(4, staff.getUsername());
-                ps.setString(5, staff.getPasswordHash());
-                ps.setString(6, staff.getRole());
-                // instanceof is only used here to read fields that exist in one subclass.
+                ps.setString(4, staff.getRole());
+
+                // Checks the role to assign appropriate subclass fields
                 if (staff instanceof Veterinarian) {
                     Veterinarian vet = (Veterinarian) staff;
-                    ps.setString(7, vet.getLicenseNumber());
-                    ps.setString(8, vet.getSpecialization());
-                    ps.setNull(9, java.sql.Types.VARCHAR);
+                    ps.setString(5, vet.getLicenseNumber());
+                    ps.setString(6, vet.getSpecialization());
+                    ps.setNull(7, java.sql.Types.VARCHAR);
                 } else {
                     VetAssistant assistant = (VetAssistant) staff;
-                    ps.setNull(7, java.sql.Types.VARCHAR);
-                    ps.setNull(8, java.sql.Types.VARCHAR);
-                    ps.setString(9, assistant.getShift());
+                    ps.setNull(5, java.sql.Types.VARCHAR);
+                    ps.setNull(6, java.sql.Types.VARCHAR);
+                    ps.setString(7, assistant.getShift());
                 }
                 ps.executeUpdate();
             }
@@ -205,17 +202,14 @@ public class MySqlStorage implements Storable {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 Staff staff;
-                // The role column decides which subclass we create.
-                // The constructor needs a plain password, so we give a temporary one and then
-                // put the stored hash back with setPasswordHash().
+                // Instantiates the correct subclass based on the role
                 if (rs.getString("role").equals("Veterinarian")) {
                     staff = new Veterinarian(rs.getString("staff_id"), rs.getString("staff_name"), rs.getString("contact_number"),
-                            rs.getString("username"), "temporary1", rs.getString("license_number"), rs.getString("specialization"));
+                            rs.getString("license_number"), rs.getString("specialization"));
                 } else {
                     staff = new VetAssistant(rs.getString("staff_id"), rs.getString("staff_name"), rs.getString("contact_number"),
-                            rs.getString("username"), "temporary1", rs.getString("shift"));
+                            rs.getString("shift"));
                 }
-                staff.setPasswordHash(rs.getString("password_hash"));
                 staffMembers.add(staff);
             }
         } catch (SQLException e) {

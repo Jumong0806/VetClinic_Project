@@ -63,7 +63,7 @@ public class Main {
             }
 
             // 3. Open the login window.
-            AuthService authService = new AuthService(manager);
+            AuthService authService = new AuthService();
             new LoginFrame(manager, authService).setVisible(true);
         });
     }
