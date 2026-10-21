@@ -90,20 +90,10 @@ public class AnimalPanel extends JPanel {
     // ---------------- building the screen ----------------
 
     // Top part: the title, the search box and the "+ Add Patient" button.
+    // Top part: the search box and the "+ Add Patient" button (Title is now handled by MainFrame).
     private void buildSearchBar() {
         JPanel pnlTop = new JPanel(new BorderLayout(0, 10));
         pnlTop.setOpaque(false);
-
-        JPanel pnlTitle = new JPanel();
-        pnlTitle.setOpaque(false);
-        pnlTitle.setLayout(new BoxLayout(pnlTitle, BoxLayout.Y_AXIS));
-        JLabel lblTitle = new JLabel("Patients");
-        lblTitle.setFont(new Font("SansSerif", Font.BOLD, 28));
-        lblTitle.setForeground(new Color(0x1F2A44));
-        JLabel lblSubtitle = new JLabel("Manage your clinic's patients");
-        lblSubtitle.setForeground(new Color(0x6B7A99));
-        pnlTitle.add(lblTitle);
-        pnlTitle.add(lblSubtitle);
 
         txtSearch = new JTextField();
         txtSearch.setBorder(BorderFactory.createTitledBorder("Search by name, owner, or ID"));
@@ -141,7 +131,6 @@ public class AnimalPanel extends JPanel {
         pnlSearch.add(txtSearch, BorderLayout.CENTER);
         pnlSearch.add(pnlRight, BorderLayout.EAST);
 
-        pnlTop.add(pnlTitle, BorderLayout.NORTH);
         pnlTop.add(pnlSearch, BorderLayout.CENTER);
         add(pnlTop, BorderLayout.NORTH);
     }

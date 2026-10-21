@@ -74,17 +74,6 @@ public class StaffPanel extends JPanel {
 
     // Top part: title, search box and "+ Add Staff".
     private void buildSearchBar() {
-        JPanel pnlTitle = new JPanel();
-        pnlTitle.setOpaque(false);
-        pnlTitle.setLayout(new BoxLayout(pnlTitle, BoxLayout.Y_AXIS));
-        JLabel lblTitle = new JLabel("Staff");
-        lblTitle.setFont(new Font("SansSerif", Font.BOLD, 28));
-        lblTitle.setForeground(new Color(0x1F2A44));
-        JLabel lblSubtitle = new JLabel("Manage your veterinary team and staff members");
-        lblSubtitle.setForeground(new Color(0x6B7A99));
-        pnlTitle.add(lblTitle);
-        pnlTitle.add(lblSubtitle);
-
         txtSearch = new JTextField();
         txtSearch.setBorder(BorderFactory.createTitledBorder("Search by name, ID, or role"));
         txtSearch.getDocument().addDocumentListener(new DocumentListener() {
@@ -122,7 +111,6 @@ public class StaffPanel extends JPanel {
 
         JPanel pnlTop = new JPanel(new BorderLayout(0, 10));
         pnlTop.setOpaque(false);
-        pnlTop.add(pnlTitle, BorderLayout.NORTH);
         pnlTop.add(pnlSearch, BorderLayout.CENTER);
         add(pnlTop, BorderLayout.NORTH);
     }

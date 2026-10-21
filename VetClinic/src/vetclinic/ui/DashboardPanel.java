@@ -41,20 +41,11 @@ public class DashboardPanel extends JPanel {
 
     public DashboardPanel(ClinicManager manager) {
         this.manager = manager;
-        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));   // stacks the parts top to bottom
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBackground(new Color(0xF4F7FC));
-        setBorder(BorderFactory.createEmptyBorder(10, 24, 20, 24));
 
-        JLabel lblTitle = new JLabel("Dashboard");
-        lblTitle.setFont(new Font("SansSerif", Font.BOLD, 28));
-        lblTitle.setForeground(new Color(0x1F2A44));
-        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JLabel lblSubtitle = new JLabel("A quick look at the clinic");
-        lblSubtitle.setForeground(new Color(0x6B7A99));
-        lblSubtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        add(lblTitle);
-        add(lblSubtitle);
-        add(javax.swing.Box.createVerticalStrut(16));
+        // Adjusted top padding since the title is gone
+        setBorder(BorderFactory.createEmptyBorder(10, 24, 20, 24));
 
         buildCards();
         add(javax.swing.Box.createVerticalStrut(16));

@@ -449,6 +449,23 @@ public class ClinicManager {
         return upcomingFollowUps;
     }
 
+    // Marks a follow-up as complete by clearing the follow-up date and saving to storage
+    public void resolveFollowUp(String recordId) {
+        for (Animal animal : animals) {
+            for (TreatmentRecord record : animal.getTreatmentHistory()) {
+                if (record.getRecordId().equals(recordId)) {
+                    record.setFollowUpDate(null); // Clear the date
+                    try {
+                        saveAll(); // Immediately save changes to MySQL or File Storage
+                    } catch (StorageException e) {
+                        System.err.println("Failed to save resolution: " + e.getMessage());
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
     // ---------------- private helpers (not in the Excel, see DEVIATIONS) ----------------
 
     // "A004" -> 4. Returns 0 if the ID has no number.

@@ -57,19 +57,9 @@ public class TreatmentPanel extends JPanel {
     }
 
     private void buildSearchBar() {
-        JPanel pnlTitle = new JPanel();
-        pnlTitle.setOpaque(false);
-        pnlTitle.setLayout(new BoxLayout(pnlTitle, BoxLayout.Y_AXIS));
-        JLabel lblTitle = new JLabel("Treatments");
-        lblTitle.setFont(new Font("SansSerif", Font.BOLD, 28));
-        lblTitle.setForeground(new Color(0x1F2A44));
-        JLabel lblSubtitle = new JLabel("View and manage all clinic treatment records");
-        lblSubtitle.setForeground(new Color(0x6B7A99));
-        pnlTitle.add(lblTitle);
-        pnlTitle.add(lblSubtitle);
-
         txtSearch = new JTextField();
         txtSearch.setBorder(BorderFactory.createTitledBorder("Search by ID, patient, diagnosis, treatment, medication, or staff"));
+
         txtSearch.getDocument().addDocumentListener(new DocumentListener() {
             @Override public void insertUpdate(DocumentEvent e) { handleSearch(); }
             @Override public void removeUpdate(DocumentEvent e) { handleSearch(); }
@@ -90,9 +80,11 @@ public class TreatmentPanel extends JPanel {
         pnlSearch.add(txtSearch, BorderLayout.CENTER);
         pnlSearch.add(pnlRight, BorderLayout.EAST);
 
+        pnlSearch.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
+        pnlSearch.setPreferredSize(new Dimension(0, 52));
+
         JPanel pnlTop = new JPanel(new BorderLayout(0, 10));
         pnlTop.setOpaque(false);
-        pnlTop.add(pnlTitle, BorderLayout.NORTH);
         pnlTop.add(pnlSearch, BorderLayout.CENTER);
         add(pnlTop, BorderLayout.NORTH);
     }
