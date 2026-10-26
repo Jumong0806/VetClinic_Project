@@ -1,7 +1,7 @@
 package vetclinic.model;
 
-import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import vetclinic.util.ValidationUtil;
 
@@ -13,9 +13,7 @@ import vetclinic.util.ValidationUtil;
  * OOP concepts: ENCAPSULATION (validating setters), OVERLOADING (two constructors),
  * INTERFACE (implements Describable).
  */
-public class TreatmentRecord implements Describable, Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class TreatmentRecord implements Describable {
 
     private String recordId;          // animalId + "-T" + number, e.g. "A001-T3"
     private String animalId;          // which patient this record belongs to
@@ -25,6 +23,7 @@ public class TreatmentRecord implements Describable, Serializable {
     private String medication;
     private LocalDate followUpDate;   // optional (can be null)
     private Staff performedBy;
+    private LocalDateTime createdAt;   // the exact moment this record was ADDED to the system (not the visit date)
 
     // Constructor 1: no follow-up date.
     public TreatmentRecord(String recordId, String animalId, LocalDate treatmentDate, String diagnosis, String treatment, String medication, Staff performedBy) {
@@ -35,12 +34,25 @@ public class TreatmentRecord implements Describable, Serializable {
         setTreatment(treatment);
         setMedication(medication);
         setPerformedBy(performedBy);
+        this.createdAt = LocalDateTime.now();   // a brand new record is stamped with the current time
     }
 
     // Constructor 2 (OVERLOADED): adds the follow-up date. It reuses constructor 1 first.
     public TreatmentRecord(String recordId, String animalId, LocalDate treatmentDate, String diagnosis, String treatment, String medication, LocalDate followUpDate, Staff performedBy) {
         this(recordId, animalId, treatmentDate, diagnosis, treatment, medication, performedBy);
         setFollowUpDate(followUpDate);
+    }
+
+    // When the record was added. Used to order "Recent Treatments" (newest added first).
+    // Records saved before this field existed have no value, so we fall back to the start of the treatment date.
+    public LocalDateTime getCreatedAt() {
+        return (createdAt != null) ? createdAt : treatmentDate.atStartOfDay();
+    }
+
+    // Used by the storage classes to restore the saved time, and by ClinicManager.updateTreatment()
+    // so that editing a record does not make it look "new" again.
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     public String getRecordId() {
@@ -133,11 +145,6 @@ public class TreatmentRecord implements Describable, Serializable {
             throw new IllegalArgumentException("A treatment must have a staff member who performed it.");
         }
         this.performedBy = performedBy;
-    }
-
-    // True when a follow-up was planned and its date is today or already passed.
-    public boolean isFollowUpDue() {
-        return followUpDate != null && !followUpDate.isAfter(LocalDate.now());
     }
 
     @Override

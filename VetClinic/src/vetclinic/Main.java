@@ -7,23 +7,21 @@ import javax.swing.UIManager;
 import vetclinic.exception.StorageException;
 import vetclinic.service.AuthService;
 import vetclinic.service.ClinicManager;
-import vetclinic.storage.FileStorage;
 import vetclinic.storage.MySqlStorage;
 import vetclinic.storage.Storable;
 import vetclinic.ui.LoginFrame;
 
 /**
  * Main - the entry point. It builds the layers and opens the login window.
+ *
  * Owner: JP
  *
- * Layers:  LoginFrame -> AuthService -> ClinicManager -> Storable -> FileStorage or MySqlStorage
- * OOP concept: POLYMORPHISM. The variable "storage" has the INTERFACE type Storable, so we can put
- * either storage class in it and nothing else in the program changes.
+ * Layers:  LoginFrame -> AuthService -> ClinicManager -> Storable -> MySqlStorage
+ *
+ * OOP concept: POLYMORPHISM. The variable "storage" has the INTERFACE type Storable,
+ * allowing the service layer to interface cleanly with the MySQL database persistence engine.
  */
 public class Main {
-
-    // false = save to data/*.dat files (works with no setup). true = save to MySQL (bonus).
-    private static final boolean USE_MYSQL = true;
 
     public static void main(String[] args) {
         // All Swing code must run on the Event Dispatch Thread (EDT).
@@ -34,18 +32,17 @@ public class Main {
                 // If the look and feel fails we simply keep the default one.
             }
 
-            Storable storage = USE_MYSQL ? new MySqlStorage() : new FileStorage();
+            Storable storage = new MySqlStorage();
             ClinicManager manager = new ClinicManager(storage);
 
-            // 1. Load the saved records.
+            // 1. Load the saved records from the database.
             try {
                 manager.loadAll();
             } catch (StorageException e) {
-                // We stop here on purpose. If we kept going, the empty data would overwrite the saved file on exit.
                 JOptionPane.showMessageDialog(null,
-                        "The saved records could not be loaded:\n" + e.getMessage()
+                        "The saved records could not be loaded from the database:\n" + e.getMessage()
                                 + "\n\nThe program will close so your data is not overwritten.\n"
-                                + "If you changed the classes, delete the files in the data folder and start again.",
+                                + "Please check your database connection settings in MySqlStorage.java.",
                         "Load error", JOptionPane.ERROR_MESSAGE);
                 System.exit(1);
             }
@@ -57,7 +54,7 @@ public class Main {
                 try {
                     manager.saveAll();
                 } catch (StorageException e) {
-                    JOptionPane.showMessageDialog(null, "Could not save the demo accounts:\n" + e.getMessage(),
+                    JOptionPane.showMessageDialog(null, "Could not save the demo accounts to the database:\n" + e.getMessage(),
                             "Save error", JOptionPane.ERROR_MESSAGE);
                 }
             }

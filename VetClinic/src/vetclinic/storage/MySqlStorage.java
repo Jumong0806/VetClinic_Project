@@ -6,6 +6,8 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,7 +25,7 @@ import vetclinic.model.VetAssistant;
 import vetclinic.model.Veterinarian;
 
 /**
- * MySqlStorage - BONUS (+5%): stores the same data in a real MySQL database using JDBC.
+ * MySqlStorage - Stores the same data in a real MySQL database using JDBC.
  * It uses PreparedStatement (safe against SQL injection) and try-with-resources (connections are always closed).
  * Owner: All
  *
@@ -39,11 +41,42 @@ public class MySqlStorage implements Storable {
     private static final String DB_USER = "root";
     private static final String DB_PASSWORD = "Jpjumong0806*";   // never commit your real password to GitHub
 
+    // The column treatment_records.created_at (when a record was ADDED) is needed to show the newest treatments first.
+    // "static" = shared by all MySqlStorage objects, so the check below runs only once per program start.
+    private static boolean createdAtColumnChecked = false;
+
+    // Makes sure the created_at column exists. On the first run after this update it adds the column itself,
+    // and gives the OLD rows a starting value (midnight of their treatment date) so nothing is NULL.
+    // DATETIME(3) keeps milliseconds, so two records added in the same second are still ordered correctly.
+    private void ensureCreatedAtColumn() throws StorageException {
+        if (createdAtColumnChecked) {
+            return;
+        }
+        try (Connection con = getConnection()) {
+            boolean exists;
+            try (PreparedStatement ps = con.prepareStatement("SHOW COLUMNS FROM treatment_records LIKE 'created_at'");
+                 ResultSet rs = ps.executeQuery()) {
+                exists = rs.next();   // true when MySQL found a column with that name
+            }
+            if (!exists) {
+                try (Statement st = con.createStatement()) {
+                    st.executeUpdate("ALTER TABLE treatment_records ADD COLUMN created_at DATETIME(3) NULL");
+                    st.executeUpdate("UPDATE treatment_records SET created_at = treatment_date WHERE created_at IS NULL");
+                }
+            }
+            createdAtColumnChecked = true;
+        } catch (SQLException e) {
+            throw new StorageException("Could not add the created_at column. Run this in MySQL once: "
+                    + "ALTER TABLE treatment_records ADD COLUMN created_at DATETIME(3) NULL;  (" + e.getMessage() + ")", e);
+        }
+    }
+
     // ---------------- animals ----------------
 
     // Saves the whole list: updates animals that exist, inserts new ones, deletes the ones that were removed.
     @Override
     public void saveAnimals(List<Animal> animals) throws StorageException {
+        ensureCreatedAtColumn();
         List<String> idsInDatabase = new ArrayList<>();
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement("SELECT animal_id FROM animals");
@@ -74,6 +107,7 @@ public class MySqlStorage implements Storable {
     // Reads every animal and its treatment records, and builds Dog, Cat or Livestock objects.
     @Override
     public List<Animal> loadAnimals() throws StorageException {
+        ensureCreatedAtColumn();
         // The records point to staff, so we load the staff first and look them up by ID.
         Map<String, Staff> staffById = new HashMap<>();
         for (Staff staff : loadStaff()) {
@@ -118,10 +152,16 @@ public class MySqlStorage implements Storable {
                     while (rs.next()) {
                         Staff performedBy = staffById.get(rs.getString("performed_by_staff_id"));
                         Date followUp = rs.getDate("follow_up_date");
-                        records.add(new TreatmentRecord(rs.getString("record_id"), animal.getAnimalId(),
+                        TreatmentRecord record = new TreatmentRecord(rs.getString("record_id"), animal.getAnimalId(),
                                 rs.getDate("treatment_date").toLocalDate(), rs.getString("diagnosis"),
                                 rs.getString("treatment"), rs.getString("medication"),
-                                followUp == null ? null : followUp.toLocalDate(), performedBy));
+                                followUp == null ? null : followUp.toLocalDate(), performedBy);
+                        // The constructor stamped "now"; replace it with the time that was saved in the database.
+                        Timestamp addedAt = rs.getTimestamp("created_at");
+                        if (addedAt != null) {
+                            record.setCreatedAt(addedAt.toLocalDateTime());
+                        }
+                        records.add(record);
                     }
                 }
             } catch (SQLException e) {
@@ -334,7 +374,7 @@ public class MySqlStorage implements Storable {
     // Inserts all treatment records of one animal using the SAME connection (same transaction).
     private void insertTreatmentRecords(Connection con, Animal animal) throws SQLException {
         String sql = "INSERT INTO treatment_records (record_id, animal_id, treatment_date, diagnosis, treatment, medication, "
-                + "follow_up_date, performed_by_staff_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                + "follow_up_date, performed_by_staff_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             for (TreatmentRecord record : animal.getTreatmentHistory()) {
                 ps.setString(1, record.getRecordId());
@@ -349,6 +389,9 @@ public class MySqlStorage implements Storable {
                     ps.setDate(7, Date.valueOf(record.getFollowUpDate()));
                 }
                 ps.setString(8, record.getPerformedBy().getStaffId());
+                // Write the record's OWN added-time. (Do not use CURRENT_TIMESTAMP here: saving an animal deletes
+                // and re-inserts all its records, which would make every old record look brand new.)
+                ps.setTimestamp(9, Timestamp.valueOf(record.getCreatedAt()));
                 ps.executeUpdate();
             }
         }

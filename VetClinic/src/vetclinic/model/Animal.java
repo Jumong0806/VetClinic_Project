@@ -1,6 +1,5 @@
 package vetclinic.model;
 
-import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,10 +18,7 @@ import vetclinic.util.ValidationUtil;
  *  - OVERLOADING: two constructors with different parameters.
  *  - STATIC member: totalAnimals counts how many animals exist.
  */
-public abstract class Animal implements Describable, Treatable, Serializable {
-
-    // Needed for Java serialization (saving objects to a file).
-    private static final long serialVersionUID = 1L;
+public abstract class Animal implements Describable, Treatable {
 
     private String animalId;                              // e.g. "A001"
     private String name;
@@ -192,10 +188,5 @@ public abstract class Animal implements Describable, Treatable, Serializable {
 
     public abstract String getCareNote();
 
-    public abstract String makeSound();
-
-    public abstract String getSpeciesDetails();
-
-    // Phase 2: used for the next checkup date.
     public abstract int getCheckupIntervalMonths();
 }

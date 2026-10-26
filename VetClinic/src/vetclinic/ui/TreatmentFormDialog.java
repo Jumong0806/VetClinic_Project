@@ -1,23 +1,24 @@
 package vetclinic.ui;
 
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.LocalDate;
-import java.util.List;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 
 import vetclinic.exception.StorageException;
 import vetclinic.model.Animal;
@@ -28,106 +29,289 @@ import vetclinic.util.ValidationUtil;
 
 /**
  * TreatmentFormDialog - the pop-up form to UPDATE an existing treatment record.
- * The Admin can update the performing staff member from a dropdown.
+ * Integrates modern UI design with polymorphic role-based access control.
  */
 public class TreatmentFormDialog extends JDialog {
 
     private ClinicManager manager;
     private TreatmentRecord originalRecord;
-    private JLabel lblPatient;
+
+    // UI Components for data binding
     private JComboBox<Staff> cmbStaff;
+    private JTextField txtPatient;
     private JTextField txtTreatmentDate;
     private JTextField txtDiagnosis;
     private JTextField txtTreatment;
     private JTextField txtMedication;
     private JTextField txtFollowUpDate;
-    private JButton btnSave;
-    private JButton btnCancel;
+
+    // Coordinate trackers used to calculate mouse movement for dragging the window
+    private int pX, pY;
+
+    // Modern UI Colors
+    private final Color BORDER_COLOR = new Color(200, 204, 212);
+    private final Color BG_COLOR = Color.WHITE;
+    private final Color FIELD_BG = new Color(248, 249, 250);
+    private final Color PRIMARY_BLUE = new Color(66, 103, 178);
+    private final Color TEXT_DARK = new Color(33, 37, 41);
+    private final Color TEXT_MUTED = new Color(108, 117, 125);
 
     public TreatmentFormDialog(JFrame parent, ClinicManager manager, TreatmentRecord record) {
-        super(parent, "Update Treatment " + record.getRecordId(), true);
+        super(parent, "", true);
         this.manager = manager;
         this.originalRecord = record;
 
-        setLayout(new BorderLayout(8, 8));
+        setUndecorated(true); // Removes standard Windows OS header (minimize, maximize, close buttons)
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(BG_COLOR);
+        mainPanel.setBorder(new LineBorder(BORDER_COLOR, 1));
+
+        mainPanel.add(createCustomHeader(record.getRecordId()), BorderLayout.NORTH);
+        mainPanel.add(createFormBody(record), BorderLayout.CENTER);
+        mainPanel.add(createFooter(), BorderLayout.SOUTH);
+
+        setContentPane(mainPanel);
+
+        // Evaluates the locked staff member's role to determine if Diagnosis/Medication should be greyed out
+        applyRolePermissions();
+
+        setSize(550, 520);
+        setLocationRelativeTo(parent); // Centers the dialog on the screen relative to the main window
+    }
+
+    // --- 1. Custom Header ---
+    private JPanel createCustomHeader(String recordId) {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(BG_COLOR);
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR), // Bottom border line
+                new EmptyBorder(15, 25, 15, 25)
+        ));
+
+        JPanel titlePanel = new JPanel();
+        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
+        titlePanel.setBackground(BG_COLOR);
+
+        JLabel lblTitle = new JLabel("Update Treatment Record");
+        lblTitle.setFont(new Font("SansSerif", Font.PLAIN, 20));
+        lblTitle.setForeground(TEXT_DARK);
+
+        JLabel lblSubtitle = new JLabel("Record ID: " + recordId);
+        lblSubtitle.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        lblSubtitle.setForeground(TEXT_MUTED);
+
+        titlePanel.add(lblTitle);
+        titlePanel.add(Box.createVerticalStrut(2)); // Adds 2 pixels of vertical space between title and subtitle
+        titlePanel.add(lblSubtitle);
+
+        JLabel closeBtn = new JLabel("X");
+        closeBtn.setFont(new Font("SansSerif", Font.BOLD, 18));
+        closeBtn.setForeground(new Color(200, 200, 200));
+        closeBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        closeBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                dispose(); // Destroys the dialog window and returns to main screen
+            }
+        });
+
+        headerPanel.add(titlePanel, BorderLayout.WEST);
+        headerPanel.add(closeBtn, BorderLayout.EAST);
+
+        // Drag functionality: Calculates the difference between initial click and mouse movement
+        headerPanel.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent me) {
+                pX = me.getX();
+                pY = me.getY();
+            }
+        });
+        headerPanel.addMouseMotionListener(new MouseAdapter() {
+            public void mouseDragged(MouseEvent me) {
+                setLocation(getLocation().x + me.getX() - pX, getLocation().y + me.getY() - pY);
+            }
+        });
+
+        return headerPanel;
+    }
+
+    // --- 2. Form Body (GridBagLayout) ---
+    private JPanel createFormBody(TreatmentRecord record) {
+        // GridBagLayout uses an invisible grid. We position components using GridBagConstraints (gbc).
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(BG_COLOR);
+        formPanel.setBorder(new EmptyBorder(20, 25, 20, 25)); // Overall padding: Top, Left, Bottom, Right
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL; // Forces components to stretch and fill their column width
 
         Animal animal = manager.findAnimalById(record.getAnimalId());
         String animalStr = (animal != null) ? animal.getName() + " (" + animal.getAnimalId() + ")" : record.getAnimalId();
 
-        lblPatient = new JLabel(animalStr);
+        // ROW 1: LABELS (Patient | Performed By)
+        // gridy = Row number. gridx = Column number.
+        gbc.gridy = 0;
 
-        // Builds the staff dropdown and selects the doctor who originally performed the treatment
-        List<Staff> allStaff = manager.getAllStaff();
-        cmbStaff = new JComboBox<>(allStaff.toArray(new Staff[0]));
-        for (int i = 0; i < cmbStaff.getItemCount(); i++) {
-            if (cmbStaff.getItemAt(i).getStaffId().equals(record.getPerformedBy().getStaffId())) {
-                cmbStaff.setSelectedIndex(i);
-                break;
-            }
-        }
-        cmbStaff.addActionListener(e -> applyRolePermissions());
+        gbc.gridx = 0;
+        gbc.weightx = 0.5; // Allocates exactly 50% of the horizontal space to Column 0
+        gbc.insets = new Insets(0, 0, 4, 15); // Margins around component: Top, Left, Bottom, Right
+        formPanel.add(createLabel("Patient"), gbc);
 
-        txtTreatmentDate = new JTextField(record.getTreatmentDate().toString(), 18);
-        txtDiagnosis = new JTextField(record.getDiagnosis(), 18);
-        txtTreatment = new JTextField(record.getTreatment(), 18);
-        txtMedication = new JTextField(record.getMedication(), 18);
+        gbc.gridx = 1;
+        gbc.weightx = 0.5; // Allocates the remaining 50% to Column 1
+        gbc.insets = new Insets(0, 0, 4, 0);
+        formPanel.add(createLabel("Performed by*"), gbc);
 
+        // ROW 2: FIELDS (Patient | Performed By)
+        gbc.gridy = 1;
+
+        gbc.gridx = 0;
+        gbc.insets = new Insets(0, 0, 15, 15); // 15px bottom margin creates spacing between rows
+        txtPatient = new JTextField(animalStr);
+        styleTextField(txtPatient);
+        txtPatient.setEnabled(false);
+        formPanel.add(txtPatient, gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(0, 0, 15, 0);
+
+        // INITIALIZE LOCKED COMBO BOX:
+        // We only load the original staff member into an array of size 1.
+        // This optimizes memory and permanently locks the historical record.
+        cmbStaff = new JComboBox<>(new Staff[]{ record.getPerformedBy() });
+        styleComboBox(cmbStaff);
+
+        gbc.ipady = 9; // Stretches the internal Y padding to make the dropdown taller
+        cmbStaff.setEnabled(false); // Prevents user interaction
+        formPanel.add(cmbStaff, gbc);
+        gbc.ipady = 0; // Reset internal padding back to 0 for the remaining fields
+
+        // ROW 3: LABELS (Treatment Date | Follow-up)
+        gbc.gridy = 2;
+
+        gbc.gridx = 0;
+        gbc.insets = new Insets(0, 0, 4, 15);
+        formPanel.add(createLabel("Treatment Date*"), gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(0, 0, 4, 0);
+        formPanel.add(createLabel("Follow-up (Optional)"), gbc);
+
+        // ROW 4: FIELDS (Treatment Date | Follow-up)
+        gbc.gridy = 3;
+
+        gbc.gridx = 0;
+        gbc.insets = new Insets(0, 0, 15, 15);
+        txtTreatmentDate = new JTextField(record.getTreatmentDate().toString());
+        styleTextField(txtTreatmentDate);
+        formPanel.add(txtTreatmentDate, gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(0, 0, 15, 0);
         String followUp = (record.getFollowUpDate() == null) ? "" : record.getFollowUpDate().toString();
-        txtFollowUpDate = new JTextField(followUp, 18);
-        txtFollowUpDate.setToolTipText("Optional. Format: yyyy-MM-dd");
+        txtFollowUpDate = new JTextField(followUp);
+        styleTextField(txtFollowUpDate);
+        formPanel.add(txtFollowUpDate, gbc);
 
-        JPanel pnlForm = new JPanel(new GridBagLayout());
-        pnlForm.setBorder(BorderFactory.createEmptyBorder(12, 12, 4, 12));
-        addRow(pnlForm, 0, "Patient", lblPatient);
-        addRow(pnlForm, 1, "Performed by", cmbStaff);
-        addRow(pnlForm, 2, "Treatment date", txtTreatmentDate);
-        addRow(pnlForm, 3, "Diagnosis", txtDiagnosis);
-        addRow(pnlForm, 4, "Treatment", txtTreatment);
-        addRow(pnlForm, 5, "Medication", txtMedication);
-        addRow(pnlForm, 6, "Follow-up date (optional)", txtFollowUpDate);
+        // ROW 5: DIAGNOSIS (Full width span)
+        gbc.gridy = 4;
+        gbc.gridx = 0;
+        gbc.gridwidth = 2; // Tells the layout manager to merge Column 0 and 1 so the field spans the full width
+        gbc.insets = new Insets(0, 0, 4, 0);
+        formPanel.add(createLabel("Diagnosis*"), gbc);
 
-        btnSave = new JButton("Save");
-        btnCancel = new JButton("Cancel");
-        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
-        pnlButtons.add(btnSave);
-        pnlButtons.add(btnCancel);
-        btnSave.addActionListener(e -> handleSave());
-        btnCancel.addActionListener(e -> handleCancel());
-        getRootPane().setDefaultButton(btnSave);
+        gbc.gridy = 5;
+        gbc.insets = new Insets(0, 0, 15, 0);
+        txtDiagnosis = new JTextField(record.getDiagnosis());
+        styleTextField(txtDiagnosis);
+        formPanel.add(txtDiagnosis, gbc);
 
-        add(pnlForm, BorderLayout.CENTER);
-        add(pnlButtons, BorderLayout.SOUTH);
+        // ROW 6: TREATMENT (Full width span)
+        gbc.gridy = 6;
+        gbc.insets = new Insets(0, 0, 4, 0);
+        formPanel.add(createLabel("Treatment*"), gbc);
 
-        applyRolePermissions();
-        pack();
-        setLocationRelativeTo(parent);
+        gbc.gridy = 7;
+        gbc.insets = new Insets(0, 0, 15, 0);
+        txtTreatment = new JTextField(record.getTreatment());
+        styleTextField(txtTreatment);
+        formPanel.add(txtTreatment, gbc);
+
+        // ROW 7: MEDICATION (Full width span)
+        gbc.gridy = 8;
+        gbc.insets = new Insets(0, 0, 4, 0);
+        formPanel.add(createLabel("Medication*"), gbc);
+
+        gbc.gridy = 9;
+        gbc.insets = new Insets(0, 0, 0, 0); // Bottom margin is 0 because this is the last element
+        txtMedication = new JTextField(record.getMedication());
+        styleTextField(txtMedication);
+        formPanel.add(txtMedication, gbc);
+
+        return formPanel;
     }
 
-    // Adjusts input fields based on the selected staff member's clearance
+    // --- 3. Footer (Buttons) ---
+    private JPanel createFooter() {
+        // FlowLayout places components in a row (Aligned RIGHT, 10px horizontal gap, 15px vertical gap)
+        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 15));
+        footerPanel.setBackground(BG_COLOR);
+        footerPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER_COLOR));
+
+        JButton btnCancel = new JButton("Cancel");
+        styleSecondaryButton(btnCancel);
+        btnCancel.addActionListener(e -> dispose());
+
+        JButton btnUpdate = new JButton("Update Record");
+        stylePrimaryButton(btnUpdate);
+        btnUpdate.addActionListener(e -> handleSave());
+
+        footerPanel.add(btnCancel);
+        footerPanel.add(btnUpdate);
+
+        // Allows the user to trigger the Update action by pressing the "Enter" key on their keyboard
+        getRootPane().setDefaultButton(btnUpdate);
+
+        return footerPanel;
+    }
+
+    // --- POLYMORPHISM LOGIC ---
     private void applyRolePermissions() {
         Staff selectedStaff = (Staff) cmbStaff.getSelectedItem();
         if (selectedStaff == null) return;
 
+        // Polymorphism in action: The program doesn't need to know if 'selectedStaff' is a Vet or Assistant.
+        // It simply asks the object. If it's a Vet, it returns true. If it's an Assistant, it returns false.
         boolean canDiagnose = selectedStaff.canDiagnose();
         boolean canPrescribe = selectedStaff.canPrescribeMedication();
 
         txtDiagnosis.setEnabled(canDiagnose);
         if (!canDiagnose) {
             txtDiagnosis.setText("Basic care only");
-        } else if (txtDiagnosis.getText().equals("Basic care only")) {
-            txtDiagnosis.setText("");
+            txtDiagnosis.setBackground(new Color(233, 236, 239)); // Applies a disabled/grey look
+        } else {
+            if (txtDiagnosis.getText().equals("Basic care only")) {
+                txtDiagnosis.setText("");
+            }
+            txtDiagnosis.setBackground(FIELD_BG);
         }
 
         txtMedication.setEnabled(canPrescribe);
         if (!canPrescribe) {
             txtMedication.setText("None");
-        } else if (txtMedication.getText().equals("None")) {
-            txtMedication.setText("");
+            txtMedication.setBackground(new Color(233, 236, 239));
+        } else {
+            if (txtMedication.getText().equals("None")) {
+                txtMedication.setText("");
+            }
+            txtMedication.setBackground(FIELD_BG);
         }
     }
 
+    // --- SAVE LOGIC ---
     private void handleSave() {
         try {
+            // Parses the text inputs into LocalDate objects. Throws an error if format is invalid.
             LocalDate treatmentDate = ValidationUtil.parseDate(txtTreatmentDate.getText());
             LocalDate followUpDate = null;
             if (!ValidationUtil.isBlank(txtFollowUpDate.getText())) {
@@ -136,6 +320,7 @@ public class TreatmentFormDialog extends JDialog {
 
             Staff selectedStaff = (Staff) cmbStaff.getSelectedItem();
 
+            // Creates a new record object merging the unchangeable IDs with the newly typed text
             TreatmentRecord updatedRecord = new TreatmentRecord(
                     originalRecord.getRecordId(),
                     originalRecord.getAnimalId(),
@@ -147,34 +332,67 @@ public class TreatmentFormDialog extends JDialog {
                     selectedStaff
             );
 
+            // Passes the updated object to the business logic layer to save in memory and SQL
             manager.updateTreatment(updatedRecord);
             manager.saveAll();
 
-            JOptionPane.showMessageDialog(this, "Treatment record updated.", "Saved", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Treatment record updated successfully.", "Saved", JOptionPane.INFORMATION_MESSAGE);
         } catch (IllegalArgumentException e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Please check the form", JOptionPane.ERROR_MESSAGE);
-            return;
+            return; // Stops the save process so the user can fix their input
         } catch (StorageException e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Save error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        dispose();
+        dispose(); // Closes the dialog upon successful save
     }
 
-    private void handleCancel() {
-        dispose();
+    // --- Helper Styling Methods ---
+
+    private JLabel createLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        label.setForeground(TEXT_DARK);
+        return label;
     }
 
-    private void addRow(JPanel panel, int row, String label, JComponent field) {
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridy = row;
-        gbc.insets = new Insets(4, 4, 4, 4);
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.gridx = 0;
-        panel.add(new JLabel(label), gbc);
-        gbc.gridx = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1;
-        panel.add(field, gbc);
+    private void styleTextField(JTextField textField) {
+        textField.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        textField.setBackground(FIELD_BG);
+        textField.setForeground(TEXT_DARK);
+        textField.setBorder(new CompoundBorder(
+                new LineBorder(BORDER_COLOR, 1, true),
+                new EmptyBorder(8, 10, 8, 10)
+        ));
+    }
+
+    private void styleComboBox(JComboBox<?> comboBox) {
+        comboBox.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        comboBox.setBackground(FIELD_BG);
+        comboBox.setForeground(TEXT_DARK);
+    }
+
+    private void stylePrimaryButton(JButton btn) {
+        btn.setFont(new Font("SansSerif", Font.BOLD, 12));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(PRIMARY_BLUE);
+        btn.setFocusPainted(false);
+        btn.setBorder(new CompoundBorder(
+                new LineBorder(PRIMARY_BLUE, 1, true),
+                new EmptyBorder(8, 15, 8, 15)
+        ));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    private void styleSecondaryButton(JButton btn) {
+        btn.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        btn.setForeground(TEXT_DARK);
+        btn.setBackground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setBorder(new CompoundBorder(
+                new LineBorder(BORDER_COLOR, 1, true),
+                new EmptyBorder(8, 15, 8, 15)
+        ));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 }

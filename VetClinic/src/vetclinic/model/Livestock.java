@@ -5,15 +5,11 @@ import vetclinic.util.ValidationUtil;
 /**
  * Livestock - a farm animal patient (cow, goat, pig, ...).
  * Owner: Jermil
- *
- * OOP concepts: INHERITANCE, POLYMORPHISM (the sound depends on the livestock type), ENCAPSULATION.
  */
 public class Livestock extends Animal {
 
-    private static final long serialVersionUID = 1L;
-
     private String tagNumber;
-    private String livestockType;   // Cow, Goat, Pig... decides the sound
+    private String livestockType;
 
     public Livestock(String animalId, String name, int age, double weightKg, Owner owner, String tagNumber, String livestockType) {
         super(animalId, name, age, weightKg, owner);
@@ -51,27 +47,6 @@ public class Livestock extends Animal {
     @Override
     public String getCareNote() {
         return "Herd check and deworming every 6 months. Check the hooves and the tag number.";
-    }
-
-    // The sound is chosen from the livestock type.
-    @Override
-    public String makeSound() {
-        String type = livestockType.toLowerCase();
-        if (type.equals("cow")) {
-            return "Moo!";
-        } else if (type.equals("goat") || type.equals("sheep")) {
-            return "Baa!";
-        } else if (type.equals("pig")) {
-            return "Oink!";
-        } else if (type.equals("horse")) {
-            return "Neigh!";
-        }
-        return "Grunt!";
-    }
-
-    @Override
-    public String getSpeciesDetails() {
-        return "Tag: " + tagNumber + " | Type: " + livestockType;
     }
 
     @Override

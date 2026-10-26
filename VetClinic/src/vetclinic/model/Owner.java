@@ -1,7 +1,5 @@
 package vetclinic.model;
 
-import java.io.Serializable;
-
 import vetclinic.util.ValidationUtil;
 
 /**
@@ -11,9 +9,7 @@ import vetclinic.util.ValidationUtil;
  * OOP concepts: ENCAPSULATION (private fields + validation), INTERFACE (implements Describable,
  * even though Owner is NOT related to Animal or Staff).
  */
-public class Owner implements Describable, Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class Owner implements Describable{
 
     private String ownerName;
     private String contactNumber;

@@ -20,7 +20,6 @@ import vetclinic.util.ValidationUtil;
 /**
  * ClinicManager - the "brain" between the GUI and the data.
  * The GUI never touches the lists or the files directly: it always asks this class.
- * Owner: Rishan
  *
  * OOP concepts: POLYMORPHISM (animals are handled as the base type Animal, staff as Staff, and the
  * storage as the Storable interface), ENCAPSULATION (the lists are private; we hand out COPIES).
@@ -31,7 +30,6 @@ public class ClinicManager {
     private List<Staff> staffMembers;
     private Storable storage;
 
-    // The storage is passed in, so this class works with FileStorage or MySqlStorage.
     public ClinicManager(Storable storage) {
         this.storage = storage;
         this.animals = new ArrayList<>();
@@ -125,12 +123,17 @@ public class ClinicManager {
         return result;
     }
 
-    // Phase 2: animals whose next checkup date is today or already passed.
-    public List<Animal> getAnimalsDueForCheckup() {
-        List<Animal> result = new ArrayList<>();
+    // Counts only treatment follow-ups that are DUE TODAY or OVERDUE.
+    // Upcoming follow-ups (date after today) are intentionally excluded.
+    public List<TreatmentRecord> getDueTreatments() {
+        List<TreatmentRecord> result = new ArrayList<>();
+        LocalDate today = LocalDate.now();
         for (Animal animal : animals) {
-            if (!animal.getNextCheckupDate().isAfter(LocalDate.now())) {
-                result.add(animal);
+            for (TreatmentRecord record : animal.getTreatmentHistory()) {
+                LocalDate followUp = record.getFollowUpDate();
+                if (followUp != null && !followUp.isAfter(today)) {   // today or earlier
+                    result.add(record);
+                }
             }
         }
         return result;
@@ -193,6 +196,7 @@ public class ClinicManager {
         }
         return result;
     }
+
 
     // Seeds initial staff data.
     public void seedDefaultStaffIfEmpty() {
@@ -295,6 +299,9 @@ public class ClinicManager {
         List<TreatmentRecord> history = animal.getTreatmentHistory();
         for (int i = 0; i < history.size(); i++) {
             if (history.get(i).getRecordId().equals(updatedRecord.getRecordId())) {
+                // The edit form builds a NEW object, so copy the original "added at" time into it.
+                // Otherwise an edited record would jump to the top of Recent Treatments.
+                updatedRecord.setCreatedAt(history.get(i).getCreatedAt());
                 history.set(i, updatedRecord);
                 animal.setTreatmentHistory(history); // Apply the changes
                 return;
@@ -331,8 +338,13 @@ public class ClinicManager {
         for (Animal animal : animals) {
             all.addAll(animal.getTreatmentHistory());
         }
-        // Sort by date, newest first. (b compared to a gives the descending order.)
-        Collections.sort(all, (a, b) -> b.getTreatmentDate().compareTo(a.getTreatmentDate()));
+        // Newest ADDED first. getCreatedAt() is the exact moment the record was added, so it does not matter
+        // which patient it belongs to or what its ID is. (b compared to a gives the descending order.)
+        // If two records have the very same time, the one with the later visit date goes first.
+        Collections.sort(all, (a, b) -> {
+            int byAdded = b.getCreatedAt().compareTo(a.getCreatedAt());
+            return (byAdded != 0) ? byAdded : b.getTreatmentDate().compareTo(a.getTreatmentDate());
+        });
         if (all.size() > limit) {
             return new ArrayList<>(all.subList(0, limit));
         }
@@ -394,7 +406,12 @@ public class ClinicManager {
     // Recent Patients table: newest registered date first.
     public List<Animal> getRecentAnimals(int limit) {
         List<Animal> sorted = new ArrayList<>(animals);
-        Collections.sort(sorted, (a, b) -> b.getRegisteredDate().compareTo(a.getRegisteredDate()));
+        // Newest registered first. Two patients registered on the same day are ordered by their ID number:
+        // IDs are generated in increasing order (A001, A002, ...), so the higher number was added later.
+        Collections.sort(sorted, (a, b) -> {
+            int byDate = b.getRegisteredDate().compareTo(a.getRegisteredDate());
+            return (byDate != 0) ? byDate : numberPartOf(b.getAnimalId()) - numberPartOf(a.getAnimalId());
+        });
         if (sorted.size() > limit) {
             return new ArrayList<>(sorted.subList(0, limit));
         }

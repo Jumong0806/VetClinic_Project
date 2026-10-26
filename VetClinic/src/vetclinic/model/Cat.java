@@ -5,12 +5,8 @@ import vetclinic.util.ValidationUtil;
 /**
  * Cat - a cat patient.
  * Owner: Rishan
- *
- * OOP concepts: INHERITANCE, POLYMORPHISM (own care note depends on indoor or outdoor), ENCAPSULATION.
  */
 public class Cat extends Animal {
-
-    private static final long serialVersionUID = 1L;
 
     private boolean indoor;
     private String coatColor;
@@ -53,16 +49,6 @@ public class Cat extends Animal {
             return "Watch the weight and dental health. Keep the litter box clean.";
         }
         return "Check for fleas, ticks and injuries. Keep the vaccines up to date.";
-    }
-
-    @Override
-    public String makeSound() {
-        return "Meow!";
-    }
-
-    @Override
-    public String getSpeciesDetails() {
-        return (indoor ? "Indoor" : "Outdoor") + " | Coat color: " + coatColor;
     }
 
     @Override

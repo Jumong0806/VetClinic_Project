@@ -1,9 +1,6 @@
 package vetclinic.model;
 
-import java.io.Serializable;
 import java.time.LocalDate;
-
-import vetclinic.util.PasswordUtil;
 import vetclinic.util.ValidationUtil;
 
 /**
@@ -13,12 +10,10 @@ import vetclinic.util.ValidationUtil;
  * OOP concepts shown here:
  *  - ABSTRACTION: abstract class with abstract methods (getRole, canDiagnose, treat, ...).
  *  - INHERITANCE: Veterinarian and VetAssistant extend this class.
- *  - ENCAPSULATION: private fields; the password is stored only as a hash.
+ *  - ENCAPSULATION: private fields
  *  - INTERFACE: implements Describable (same interface as Animal, but the classes are unrelated).
  */
-public abstract class Staff implements Describable, Serializable {
-
-    private static final long serialVersionUID = 1L;
+public abstract class Staff implements Describable {
 
     private String staffId;
     private String staffName;

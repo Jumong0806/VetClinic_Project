@@ -5,13 +5,8 @@ import vetclinic.util.ValidationUtil;
 /**
  * Dog - a dog patient.
  * Owner: Richnie
- *
- * OOP concepts: INHERITANCE (extends Animal, calls super), POLYMORPHISM (overrides the abstract methods),
- * ENCAPSULATION (private fields, validating setters).
  */
 public class Dog extends Animal {
-
-    private static final long serialVersionUID = 1L;
 
     private String breed;
     private boolean rabiesVaccinated;
@@ -56,16 +51,6 @@ public class Dog extends Animal {
             return "Rabies vaccine is missing. Schedule it as soon as possible. Daily walks needed.";
         }
         return "Daily walks, yearly vaccine booster and regular deworming.";
-    }
-
-    @Override
-    public String makeSound() {
-        return "Woof!";
-    }
-
-    @Override
-    public String getSpeciesDetails() {
-        return "Breed: " + breed + " | Rabies vaccinated: " + (rabiesVaccinated ? "Yes" : "No");
     }
 
     @Override

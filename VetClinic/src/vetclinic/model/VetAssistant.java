@@ -13,8 +13,6 @@ import vetclinic.util.ValidationUtil;
  */
 public class VetAssistant extends Staff {
 
-    private static final long serialVersionUID = 1L;
-
     private String shift;   // Morning, Afternoon or Night
 
     // Initializes a new Vet Assistant.

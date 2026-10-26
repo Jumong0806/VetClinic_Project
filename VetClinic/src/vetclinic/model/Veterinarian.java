@@ -13,8 +13,6 @@ import vetclinic.util.ValidationUtil;
  */
 public class Veterinarian extends Staff {
 
-    private static final long serialVersionUID = 1L;
-
     private String licenseNumber;
     private String specialization;
 

@@ -48,24 +48,6 @@ public final class ValidationUtil {
         return date != null && date.isAfter(LocalDate.now());
     }
 
-    // At least 4 characters and no spaces.
-    public static boolean isValidUsername(String username) {
-        if (username == null || username.trim().length() < 4) {
-            return false;
-        }
-        for (int i = 0; i < username.trim().length(); i++) {
-            if (Character.isWhitespace(username.trim().charAt(i))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    // At least 6 characters.
-    public static boolean isValidPassword(String password) {
-        return password != null && password.length() >= 6;
-    }
-
     // Reads a date typed as yyyy-MM-dd (for example 2026-10-07).
     public static LocalDate parseDate(String text) {
         if (isBlank(text)) {
